@@ -7,7 +7,7 @@ const app = express();
 const port = ENV_VARS.PORT;
 
 app.use(express.json());
-app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/auth", authRoutes);            // auth is a prefix/placeholder which contain all the routes form authRoutes i.e. /signIn, /signUp, /logOut
 
 app.get('/', (req, res) => {
     res.send('Hello World!');

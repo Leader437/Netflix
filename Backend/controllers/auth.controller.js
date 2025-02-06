@@ -1,8 +1,14 @@
+// import { response } from "express";
 import User from "../models/user.model.js";
+import jwt from "jsonwebtoken";
+import { ENV_VARS } from "../config/envVars.js";
+import bcrypt from "bcrypt";
+import { generateTokenAndSetCookie } from "../utils/generateToken.js";
 
-export const signIn = async (req, res) => {
+// Writting the Code of the Authentication Routes
+export const signUp = async (req, res) => {
     try {
-        const { userName, password, email } = req.body
+        const { userName, password, email } = req.body;
 
         // Checking the availability of data
         if (!userName || !password || !email) {
@@ -16,7 +22,7 @@ export const signIn = async (req, res) => {
         }
 
         // Checking Password Length
-        if (password.length < 6) {
+        if (String(password).length < 6) {
             return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
         }
 
@@ -36,20 +42,70 @@ export const signIn = async (req, res) => {
         const PROFILE_PICS = ["/avatar1.png", "/avatar2.png", "/avatar3.png"];
         const image = PROFILE_PICS[Math.floor(Math.random() * PROFILE_PICS.length)];
 
+        // hashing the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         // Creating New User in Database
-        const newUser = new User({ userName, email, password, image }); // this will work fine since both the keys of object and the variable that i am assigning them have same name
+        const newUser = new User({ userName, email, password: hashedPassword, image });
+
+        generateTokenAndSetCookie(newUser._id, res);
         await newUser.save();
 
+        console.log("User Created Successfully");
+
+        res.status(201).json({ success: true, data: {   // so that we don't send the password in response
+            userName: newUser.userName,
+            email: newUser.email,
+            image: newUser.image
+        }});
+
     } catch (e) {
-        console.log("Error in SignIn: ", e.error);
+        console.log("Error in SignUp: ", e.error);
         res.status(500).json({ success: false, error: "Something went wrong" });
     }
 }
 
-export const signUp = async (req, res) => {
-    res.send("Sign Up Route");
+export const signIn = async (req, res) => {
+    try {
+        const { userName, password, email } = req.body;
+        
+        // Checking the availability of data
+        if (!password || !email) {
+            return res.status(400).json({ success: false, error: "Error! Unable to get complete Login Information" });
+        }
+
+        // Checking Email availability in database
+        const existingUser = await User.findOne({ email: email });
+        if (!existingUser) {
+            return res.status(400).json({ success: false, error: "Invalid Credentials" });
+        }
+
+        // Checking Password
+        const validPassword = await bcrypt.compare(password, existingUser.password);
+        if (!validPassword) {
+            return res.status(400).json({ success: false, error: "Invalid Credentials" });
+        }
+
+        generateTokenAndSetCookie(existingUser._id, res);
+
+        res.status(200).json({ success: true, data: {   // so that we don't send the password in response
+            userName: existingUser.userName,
+            email: existingUser.email,
+            image: existingUser.image
+        }});
+
+    } catch (error) {
+        console.log("Error in SignIn: ", error.error);
+        res.status(500).json({ success: false, error: "Something went wrong" });
+    }
 }
 
 export const logOut = async (req, res) => {
-    res.send("Log Out Route");
+    try {
+        res.clearCookie("netflix_jwt");
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.log("Error in LogOut: ", error.error);
+        res.status(500).json({ success: false, error: "Something went wrong" });
+    }
 }

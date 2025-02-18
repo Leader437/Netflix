@@ -1,7 +1,7 @@
 // import { response } from "express";
 import User from "../models/user.model.js";
-import jwt from "jsonwebtoken";
-import { ENV_VARS } from "../config/envVars.js";
+// import jwt from "jsonwebtoken";
+// import { ENV_VARS } from "../config/envVars.js";
 import bcrypt from "bcrypt";
 import { generateTokenAndSetCookie } from "../utils/generateToken.js";
 
